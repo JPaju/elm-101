@@ -2,7 +2,6 @@ module Main exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
-import Counter
 import Element
     exposing
         ( DeviceClass(..)
@@ -13,22 +12,22 @@ import Element
         , el
         , fill
         , height
-        , html
         , image
         , layout
         , minimum
+        , none
         , padding
         , shrink
         , spacing
-        , text
         , width
         )
 import Element.Background as Background
 import Element.Font as Font exposing (bold)
 import Element.Region exposing (heading)
-import Html exposing (Html)
 import Navbar
 import Page as Page exposing (Page(..))
+import Page.Comic as Comic
+import Page.Counter as Counter
 import Route exposing (Route(..), fromUrl)
 import Ui.Colors exposing (lightBlue)
 import Url exposing (Url)
@@ -60,14 +59,16 @@ type alias Model =
     { key : Nav.Key
     , user : User
     , page : Page
+    , counter : Counter.Model
     }
 
 
 init : Url -> Nav.Key -> ( Model, Cmd Msg )
-init url key =
+init _ key =
     ( { key = key
       , user = Anonymous -- TODO -- from flags
-      , page = Page.Player -- TODO -- From url
+      , page = Page.CounterPage -- TODO -- From url
+      , counter = Counter.init
       }
     , Cmd.none
     )
@@ -79,25 +80,45 @@ type Msg
     | UrlChanged Url
     | CounterMsg Counter.Msg
     | UserMsg User.Msg
+    | ComicMsg Comic.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
-        LinkClicked request ->
+    case ( msg, model.page ) of
+        ( LinkClicked request, _ ) ->
             linkClicked model request
 
-        UrlChanged url ->
+        ( UrlChanged url, _ ) ->
             urlChanged model url
 
-        CounterMsg counterMsg ->
+        ( CounterMsg counterMsg, CounterPage ) ->
+            Counter.update counterMsg model.counter
+                |> stepCounter model
+
+        ( UserMsg _, PlayerPage ) ->
             ( model, Cmd.none )
 
-        UserMsg userMsg ->
+        ( ComicMsg comicMsg, ComicsPage comicsModel ) ->
+            Comic.update comicMsg comicsModel
+                |> stepComic model
+
+        ( _, _ ) ->
             ( model, Cmd.none )
 
-        NoOp ->
-            ( model, Cmd.none )
+
+stepCounter : Model -> ( Counter.Model, Cmd Counter.Msg ) -> ( Model, Cmd Msg )
+stepCounter model ( counterModel, counterCmd ) =
+    ( { model | page = Page.CounterPage, counter = counterModel }
+    , Cmd.map CounterMsg counterCmd
+    )
+
+
+stepComic : Model -> ( Comic.Model, Cmd Comic.Msg ) -> ( Model, Cmd Msg )
+stepComic model ( comicsModel, comicCmd ) =
+    ( { model | page = Page.ComicsPage comicsModel }
+    , Cmd.map ComicMsg comicCmd
+    )
 
 
 linkClicked : Model -> Browser.UrlRequest -> ( Model, Cmd msg )
@@ -115,13 +136,13 @@ urlChanged : Model -> Url -> ( Model, Cmd Msg )
 urlChanged model url =
     case fromUrl url of
         Just Route.Counter ->
-            ( { model | page = Page.Counter }, Cmd.none )
+            ( { model | page = Page.CounterPage }, Cmd.none )
 
         Just Route.Player ->
-            ( { model | page = Page.Player }, Cmd.none )
+            ( { model | page = Page.PlayerPage }, Cmd.none )
 
-        Just Route.FunStuff ->
-            ( { model | page = Page.Memes }, Cmd.none )
+        Just Route.Comics ->
+            stepComic model Comic.init
 
         Nothing ->
             ( Debug.log ("Route for url '" ++ Url.toString url ++ "' not found") model, Cmd.none )
@@ -141,9 +162,10 @@ logo size =
     image [ centerX, height (shrink |> minimum size) ] { src = "/logo.svg", description = "Elm logo" }
 
 
-viewContent : String -> Element Msg
-viewContent content =
-    el [ centerX, centerY ] <| text <| content
+viewContent : Element Msg -> Element Msg
+viewContent =
+    -- el [ centerX, centerY ]
+    el []
 
 
 view : Model -> Browser.Document Msg
@@ -154,16 +176,17 @@ view model =
             column [ height fill, width fill, spacing 10 ]
                 [ viewHeader
                 , Navbar.view model.page
-                , viewContent <|
+                , el [ width fill, height fill ] <|
                     case model.page of
-                        Page.Counter ->
-                            "Counter"
+                        Page.CounterPage ->
+                            Counter.view CounterMsg model.counter
 
-                        Page.Player ->
-                            "Player"
+                        Page.PlayerPage ->
+                            none
 
-                        Page.Memes ->
-                            "Memes"
+                        Page.ComicsPage comicModel ->
+                            Comic.view comicModel
+                                |> Element.map ComicMsg
                 ]
         ]
     }

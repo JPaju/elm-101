@@ -15,9 +15,9 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Region as Region
-import Ui.Colors exposing (blue)
 import Page as Page exposing (Page(..))
 import Route exposing (Route)
+import Ui.Colors exposing (blue)
 
 
 view : Page -> Element msg
@@ -34,7 +34,7 @@ view currPage =
         ]
         [ navLink Route.Counter "Counter"
         , navLink Route.Player "Player"
-        , navLink Route.FunStuff "FunStuff"
+        , navLink Route.Comics "Comics"
         ]
 
 
@@ -65,13 +65,13 @@ navElement currPage route label =
 isActive : Route -> Page -> Bool
 isActive route page =
     case ( route, page ) of
-        ( Route.Counter, Page.Counter ) ->
+        ( Route.Counter, Page.CounterPage ) ->
             True
 
-        ( Route.Player, Page.Player ) ->
+        ( Route.Player, Page.PlayerPage ) ->
             True
 
-        ( Route.FunStuff, Page.Memes ) ->
+        ( Route.Comics, Page.ComicsPage _ ) ->
             True
 
         _ ->

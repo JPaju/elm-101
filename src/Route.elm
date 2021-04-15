@@ -7,7 +7,7 @@ import Url.Parser as Parser
 type Route
     = Counter
     | Player
-    | FunStuff
+    | Comics
 
 
 routeParser : Parser.Parser (Route -> a) a
@@ -15,7 +15,7 @@ routeParser =
     Parser.oneOf
         [ Parser.map Counter (Parser.s "counter")
         , Parser.map Player (Parser.s "player")
-        , Parser.map FunStuff (Parser.s "fun")
+        , Parser.map Comics (Parser.s "comics")
         ]
 
 
@@ -33,5 +33,5 @@ href route =
         Player ->
             "/player"
 
-        FunStuff ->
-            "/fun"
+        Comics ->
+            "/comics"

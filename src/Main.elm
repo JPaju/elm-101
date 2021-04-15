@@ -4,10 +4,8 @@ import Browser
 import Counter
 import Element
     exposing
-        ( Color
-        , DeviceClass(..)
+        ( DeviceClass(..)
         , Element
-        , alignRight
         , centerX
         , centerY
         , column
@@ -19,22 +17,16 @@ import Element
         , layout
         , minimum
         , padding
-        , paddingXY
-        , pointer
-        , px
-        , row
         , shrink
         , spacing
         , width
         )
 import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font exposing (bold)
-import Element.Input as Input
-import Element.Region exposing (heading, navigation)
+import Element.Region exposing (heading)
 import Html exposing (Html)
-import Ui.Button exposing (testButton)
-import Ui.Colors exposing (blue)
+import Navigation as Nav
+import Ui.Colors exposing (lightBlue)
 import User exposing (update, view)
 
 
@@ -48,15 +40,10 @@ import User exposing (update, view)
 -- 4. Ala hahmottelemaan pelilautaa ja laivoja
 
 
-type View
-    = UserView
-    | CounterView
-
-
 type alias Model =
     { counter : Counter.Model
     , user : User.Model
-    , view : View
+    , page : Nav.Page
     }
 
 
@@ -64,7 +51,7 @@ init : ( Model, Cmd Msg )
 init =
     ( { counter = Counter.init
       , user = User.init
-      , view = UserView
+      , page = Nav.UserPage
       }
     , Cmd.none
     )
@@ -73,7 +60,7 @@ init =
 type Msg
     = Counter Counter.Msg
     | User User.Msg
-    | ViewChanged View
+    | PageChanged Nav.Page
     | NoOp
 
 
@@ -86,8 +73,8 @@ update msg model =
         User usrMsg ->
             ( { model | user = User.update usrMsg model.user }, Cmd.none )
 
-        ViewChanged newView ->
-            ( { model | view = newView }, Cmd.none )
+        PageChanged newPage ->
+            ( { model | page = newPage }, Cmd.none )
 
         NoOp ->
             ( model, Cmd.none )
@@ -100,50 +87,37 @@ explain =
 
 viewHeader : Element msg
 viewHeader =
-    column [ width fill, spacing 20, padding 50 ]
-        [ image [ centerX, height (shrink |> minimum 200) ] { src = "/logo.svg", description = "Elm logo" }
-        , el [ centerX, Font.size 30, heading 1, bold ] (Element.text "Your Elm App is working!")
-        ]
+    el [ width fill ] <|
+        column [ width fill, Background.color lightBlue, spacing 20, padding 20 ]
+            [ logo 200
+            , el [ centerX, Font.size 30, heading 1, bold ] (Element.text "Your Elm App is working!")
+            ]
 
 
-navElement : ( String, View ) -> Element View
-navElement ( label, msg ) =
-    Input.button
-        [ centerX
-        , Background.color blue
-        , paddingXY 20 10
-        , Border.rounded 20
-        , pointer
-        ]
-        { onPress = Just msg, label = Element.text label }
-
-
-navbar : Element View
-navbar =
-    row
-        [ width fill, padding 10, spacing 30, navigation ]
-        (List.map navElement [ ( "User", UserView ), ( "Counter", CounterView ) ])
+logo : Int -> Element msg
+logo size =
+    image [ centerX, height (shrink |> minimum size) ] { src = "/logo.svg", description = "Elm logo" }
 
 
 viewContent : Model -> Element Msg
 viewContent model =
-    html <|
-        case model.view of
-            UserView ->
-                Html.map User (User.view model.user)
+    el [ centerX, centerY ] <|
+        html <|
+            case model.page of
+                Nav.UserPage ->
+                    Html.map User (User.view model.user)
 
-            CounterView ->
-                Html.map Counter (Counter.view model.counter)
+                Nav.CounterPage ->
+                    Html.map Counter (Counter.view model.counter)
 
 
 view : Model -> Html Msg
 view model =
     layout [] <|
-        column [ height fill, width fill, paddingXY 30 10 ]
+        column [ height fill, width fill, spacing 10 ]
             [ viewHeader
-            , Element.map ViewChanged navbar
+            , Nav.navBar model.page PageChanged
             , viewContent model
-            , testButton "Test" NoOp
             ]
 
 

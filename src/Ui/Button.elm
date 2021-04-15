@@ -11,7 +11,3 @@ testButton label msg =
         { text = label
         , onPress = Just msg
         }
-
-
-
--- |> always "Ignore this line"

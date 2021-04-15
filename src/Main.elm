@@ -99,8 +99,8 @@ update msg model =
         ( UserMsg _, PlayerPage ) ->
             ( model, Cmd.none )
 
-        ( ComicMsg comicMsg, ComicsPage comicsModel ) ->
-            Comic.update comicMsg comicsModel
+        ( ComicMsg comicMsg, ComicPage comicModel ) ->
+            Comic.update comicMsg comicModel
                 |> stepComic model
 
         ( _, _ ) ->
@@ -115,8 +115,8 @@ stepCounter model ( counterModel, counterCmd ) =
 
 
 stepComic : Model -> ( Comic.Model, Cmd Comic.Msg ) -> ( Model, Cmd Msg )
-stepComic model ( comicsModel, comicCmd ) =
-    ( { model | page = Page.ComicsPage comicsModel }
+stepComic model ( comicModel, comicCmd ) =
+    ( { model | page = Page.ComicPage comicModel }
     , Cmd.map ComicMsg comicCmd
     )
 
@@ -141,7 +141,7 @@ urlChanged model url =
         Just Route.Player ->
             ( { model | page = Page.PlayerPage }, Cmd.none )
 
-        Just Route.Comics ->
+        Just Route.Comic ->
             stepComic model Comic.init
 
         Nothing ->
@@ -184,7 +184,7 @@ view model =
                         Page.PlayerPage ->
                             none
 
-                        Page.ComicsPage comicModel ->
+                        Page.ComicPage comicModel ->
                             Comic.view comicModel
                                 |> Element.map ComicMsg
                 ]

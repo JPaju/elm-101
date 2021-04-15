@@ -34,7 +34,7 @@ view currPage =
         ]
         [ navLink Route.Counter "Counter"
         , navLink Route.Player "Player"
-        , navLink Route.Comics "Comics"
+        , navLink Route.Comic "Comic"
         ]
 
 
@@ -71,7 +71,7 @@ isActive route page =
         ( Route.Player, Page.PlayerPage ) ->
             True
 
-        ( Route.Comics, Page.ComicsPage _ ) ->
+        ( Route.Comic, Page.ComicPage _ ) ->
             True
 
         _ ->

@@ -9,12 +9,12 @@ import Json.Decode.Pipeline exposing (required)
 import Process
 import Random
 import Task
-import Ui exposing (primaryButton, loadingSpinner)
+import Ui exposing (loadingSpinner, primaryButton)
 import Url exposing (Url)
 import Url.Builder
 
 
-type alias Comics =
+type alias Comic =
     { title : String
     , number : Int
     , imageUrl : String
@@ -24,13 +24,13 @@ type alias Comics =
 
 type Model
     = Loading
-    | Success Comics
+    | Success Comic
     | Failure String
 
 
 type Msg
-    = GotComicsNumber Int
-    | GotComics Comics
+    = GotComicNumber Int
+    | GotComic Comic
     | Error String
     | FetchNewComic
 
@@ -41,7 +41,7 @@ init =
 
 
 randomComicNumber =
-    Random.generate GotComicsNumber (Random.int 1 2450)
+    Random.generate GotComicNumber (Random.int 1 2450)
 
 
 comicUrl : Int -> String
@@ -57,20 +57,20 @@ fetchComic comicNumber =
         }
 
 
-decoder : Decoder Comics
+decoder : Decoder Comic
 decoder =
-    Decode.succeed Comics
+    Decode.succeed Comic
         |> required "title" string
         |> required "num" int
         |> required "img" string
         |> required "alt" string
 
 
-handleComicResult : Result Http.Error Comics -> Msg
+handleComicResult : Result Http.Error Comic -> Msg
 handleComicResult result =
     case result of
         Ok res ->
-            GotComics res
+            GotComic res
 
         Err httpError ->
             Error "Network error"
@@ -79,10 +79,10 @@ handleComicResult result =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotComicsNumber num ->
+        GotComicNumber num ->
             ( model, fetchComic num )
 
-        GotComics comic ->
+        GotComic comic ->
             ( Success comic, Cmd.none )
 
         Error err ->
@@ -101,7 +101,11 @@ view model =
         Success comic ->
             column [ width fill, height fill, paddingXY 10 20, spacing 30 ]
                 [ comicTitle comic
-                , image [ centerX, centerY, width (fill |> maximum 600) ]
+                , image
+                    [ centerX
+                    , centerY
+                    , width (fill |> maximum 600)
+                    ]
                     { src = comic.imageUrl, description = comic.description }
                 , primaryButton [ alignBottom, centerX ] "Next" FetchNewComic
                 ]
@@ -110,6 +114,12 @@ view model =
             el [] (text ("Error: " ++ err))
 
 
-comicTitle : Comics -> Element msg
+comicTitle : Comic -> Element msg
 comicTitle { number, title } =
-    el [ centerX, Region.heading 1, Font.size 30, Font.bold ] (text ("#" ++ String.fromInt number ++ " - " ++ title))
+    el
+        [ centerX
+        , Region.heading 1
+        , Font.size 30
+        , Font.bold
+        ]
+        (text ("#" ++ String.fromInt number ++ " - " ++ title))

@@ -1,13 +1,13 @@
 module Page exposing (..)
 
-import Page.Comic as Comics
+import Page.Comic as Comic
 import Route exposing (Route(..))
 
 
 type Page
     = CounterPage
     | PlayerPage
-    | ComicsPage Comics.Model
+    | ComicPage Comic.Model
 
 
 

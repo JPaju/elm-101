@@ -9,8 +9,7 @@ import Json.Decode.Pipeline exposing (required)
 import Process
 import Random
 import Task
-import Ui.Button exposing (primaryButton)
-import Ui.LoadingSpinner exposing (loadingSpinner)
+import Ui exposing (primaryButton, loadingSpinner)
 import Url exposing (Url)
 import Url.Builder
 

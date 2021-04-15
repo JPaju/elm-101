@@ -3,7 +3,7 @@ module Page.Counter exposing (Model, Msg, init, update, view)
 import Counter exposing (Msg)
 import Element exposing (Element, centerX, centerY, column, el, row, spacing, text)
 import Element.Font as Font
-import Ui.Button exposing (primaryButton)
+import Ui exposing (primaryButton)
 
 
 type alias Model =

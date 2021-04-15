@@ -29,7 +29,7 @@ import Page as Page exposing (Page(..))
 import Page.Comic as Comic
 import Page.Counter as Counter
 import Route exposing (Route(..), fromUrl)
-import Ui.Colors exposing (lightBlue)
+import Ui exposing (lightBlue)
 import Url exposing (Url)
 import User exposing (update, view)
 

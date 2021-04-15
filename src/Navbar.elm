@@ -17,7 +17,7 @@ import Element.Border as Border
 import Element.Region as Region
 import Page as Page exposing (Page(..))
 import Route exposing (Route)
-import Ui.Colors exposing (blue)
+import Ui exposing (blue)
 
 
 view : Page -> Element msg
@@ -46,7 +46,7 @@ navElement currPage route label =
 
         backgroundColor =
             if isActivePage then
-                Background.color Ui.Colors.red
+                Background.color Ui.red
 
             else
                 Background.color blue

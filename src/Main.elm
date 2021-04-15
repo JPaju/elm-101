@@ -1,6 +1,7 @@
 module Main exposing (..)
 
 import Browser
+import Browser.Navigation as Nav
 import Counter
 import Element
     exposing
@@ -19,14 +20,18 @@ import Element
         , padding
         , shrink
         , spacing
+        , text
         , width
         )
 import Element.Background as Background
 import Element.Font as Font exposing (bold)
 import Element.Region exposing (heading)
 import Html exposing (Html)
-import Navigation as Nav
+import Navbar
+import Page as Page exposing (Page(..))
+import Route exposing (Route(..), fromUrl)
 import Ui.Colors exposing (lightBlue)
+import Url exposing (Url)
 import User exposing (update, view)
 
 
@@ -40,49 +45,86 @@ import User exposing (update, view)
 -- 4. Ala hahmottelemaan pelilautaa ja laivoja
 
 
-type alias Model =
-    { counter : Counter.Model
-    , user : User.Model
-    , page : Nav.Page
+type alias Player =
+    { name : String
+    , id : String
     }
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( { counter = Counter.init
-      , user = User.init
-      , page = Nav.UserPage
+type User
+    = Anonymous
+    | Known Player
+
+
+type alias Model =
+    { key : Nav.Key
+    , user : User
+    , page : Page
+    }
+
+
+init : Url -> Nav.Key -> ( Model, Cmd Msg )
+init url key =
+    ( { key = key
+      , user = Anonymous -- TODO -- from flags
+      , page = Page.Player -- TODO -- From url
       }
     , Cmd.none
     )
 
 
 type Msg
-    = Counter Counter.Msg
-    | User User.Msg
-    | PageChanged Nav.Page
-    | NoOp
+    = NoOp
+    | LinkClicked Browser.UrlRequest
+    | UrlChanged Url
+    | CounterMsg Counter.Msg
+    | UserMsg User.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Counter counterMsg ->
-            ( { model | counter = Counter.update counterMsg model.counter }, Cmd.none )
+        LinkClicked request ->
+            linkClicked model request
 
-        User usrMsg ->
-            ( { model | user = User.update usrMsg model.user }, Cmd.none )
+        UrlChanged url ->
+            urlChanged model url
 
-        PageChanged newPage ->
-            ( { model | page = newPage }, Cmd.none )
+        CounterMsg counterMsg ->
+            ( model, Cmd.none )
+
+        UserMsg userMsg ->
+            ( model, Cmd.none )
 
         NoOp ->
             ( model, Cmd.none )
 
 
-explain : Element.Attribute msg
-explain =
-    Element.explain Debug.todo
+linkClicked : Model -> Browser.UrlRequest -> ( Model, Cmd msg )
+linkClicked model urlRequest =
+    case urlRequest of
+        Browser.Internal url ->
+            ( model, Nav.pushUrl model.key (Url.toString url) )
+
+        -- TODO -- Check that user has given their information
+        Browser.External extUrl ->
+            ( model, Nav.load extUrl )
+
+
+urlChanged : Model -> Url -> ( Model, Cmd Msg )
+urlChanged model url =
+    case fromUrl url of
+        Just Route.Counter ->
+            ( { model | page = Page.Counter }, Cmd.none )
+
+        Just Route.Player ->
+            ( { model | page = Page.Player }, Cmd.none )
+
+        Just Route.FunStuff ->
+            ( { model | page = Page.Memes }, Cmd.none )
+
+        Nothing ->
+            ( Debug.log ("Route for url '" ++ Url.toString url ++ "' not found") model, Cmd.none )
 
 
 viewHeader : Element msg
@@ -99,33 +141,41 @@ logo size =
     image [ centerX, height (shrink |> minimum size) ] { src = "/logo.svg", description = "Elm logo" }
 
 
-viewContent : Model -> Element Msg
-viewContent model =
-    el [ centerX, centerY ] <|
-        html <|
-            case model.page of
-                Nav.UserPage ->
-                    Html.map User (User.view model.user)
-
-                Nav.CounterPage ->
-                    Html.map Counter (Counter.view model.counter)
+viewContent : String -> Element Msg
+viewContent content =
+    el [ centerX, centerY ] <| text <| content
 
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
-    layout [] <|
-        column [ height fill, width fill, spacing 10 ]
-            [ viewHeader
-            , Nav.navBar model.page PageChanged
-            , viewContent model
-            ]
+    { title = "This is a title"
+    , body =
+        [ layout [] <|
+            column [ height fill, width fill, spacing 10 ]
+                [ viewHeader
+                , Navbar.view model.page
+                , viewContent <|
+                    case model.page of
+                        Page.Counter ->
+                            "Counter"
+
+                        Page.Player ->
+                            "Player"
+
+                        Page.Memes ->
+                            "Memes"
+                ]
+        ]
+    }
 
 
 main : Program () Model Msg
 main =
-    Browser.element
-        { view = view
-        , init = \_ -> init
+    Browser.application
+        { init = \_ -> init
+        , view = view
         , update = update
         , subscriptions = always Sub.none
+        , onUrlRequest = LinkClicked
+        , onUrlChange = UrlChanged
         }

@@ -1,4 +1,4 @@
-module Navbar exposing (view)
+module Navbar exposing (view, ActivePage(..))
 
 import Element
     exposing
@@ -15,12 +15,18 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Region as Region
-import Page as Page exposing (Page(..))
 import Route exposing (Route)
 import Ui exposing (blue)
 
 
-view : Page -> Element msg
+-- This is only used to determine what navigation link should be rendered as active
+type ActivePage
+    = Player
+    | Counter
+    | Comic
+
+
+view : ActivePage -> Element msg
 view currPage =
     let
         navLink =
@@ -32,13 +38,13 @@ view currPage =
         , spacing 5
         , Region.navigation
         ]
-        [ navLink Route.Counter "Counter"
-        , navLink Route.Player "Player"
+        [ navLink Route.Player "Player"
+        , navLink Route.Counter "Counter"
         , navLink Route.Comic "Comic"
         ]
 
 
-navElement : Page -> Route -> String -> Element msg
+navElement : ActivePage -> Route -> String -> Element msg
 navElement currPage route label =
     let
         isActivePage =
@@ -62,16 +68,16 @@ navElement currPage route label =
         { url = Route.href route, label = Element.text label }
 
 
-isActive : Route -> Page -> Bool
+isActive : Route -> ActivePage -> Bool
 isActive route page =
     case ( route, page ) of
-        ( Route.Counter, Page.CounterPage ) ->
+        ( Route.Counter, Counter ) ->
             True
 
-        ( Route.Player, Page.PlayerPage ) ->
+        ( Route.Player, Player ) ->
             True
 
-        ( Route.Comic, Page.ComicPage _ ) ->
+        ( Route.Comic, Comic ) ->
             True
 
         _ ->

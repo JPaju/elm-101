@@ -4,6 +4,7 @@ import Url exposing (Url)
 import Url.Parser as Parser
 
 
+-- This is used to represent all the valid routes in the app
 type Route
     = Counter
     | Player

@@ -1,8 +1,8 @@
 module Page.Counter exposing (Model, Msg, init, update, view)
 
-import Counter exposing (Msg)
-import Element exposing (Element, centerX, centerY, column, el, row, spacing, text)
+import Element exposing (alignTop, centerX, centerY, column, el, fill, height, row, spacing, text)
 import Element.Font as Font
+import Layout
 import Ui exposing (primaryButton)
 
 
@@ -25,16 +25,20 @@ init =
     }
 
 
-view : (Msg -> msg) -> Model -> Element msg
-view toMsg model =
-    column [ spacing 10, centerX, centerY ]
-        [ row [ centerX ] [ el [ Font.size 50 ] <| text (String.fromInt model.count) ]
-        , row [ centerX, spacing 10 ]
-            [ primaryButton [] "-" (Decrement |> toMsg)
-            , primaryButton [] "Reset" (Reset |> toMsg)
-            , primaryButton [] "+" (Increment |> toMsg)
+view : Model -> Layout.PageInfo Msg
+view model =
+    { title = "Count: " ++ String.fromInt model.count
+    , content =
+        column [ spacing 10, centerX, centerY, height fill ]
+            [ Ui.pageHeader [ alignTop, centerX ] "Counter"
+            , row [ centerX, centerY ] [ el [ Font.size 50 ] <| text (String.fromInt model.count) ]
+            , row [ centerX, centerY, spacing 10 ]
+                [ primaryButton [] { label = "-", enabled = True, onClick = Decrement }
+                , primaryButton [] { label = "Reset", enabled = True, onClick = Reset }
+                , primaryButton [] { label = "+", enabled = True, onClick = Increment }
+                ]
             ]
-        ]
+    }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

@@ -2,41 +2,17 @@ module Main exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
-import Element
-    exposing
-        ( DeviceClass(..)
-        , Element
-        , centerX
-        , centerY
-        , column
-        , el
-        , fill
-        , height
-        , image
-        , layout
-        , minimum
-        , none
-        , padding
-        , shrink
-        , spacing
-        , width
-        )
-import Element.Background as Background
-import Element.Font as Font exposing (bold)
-import Element.Region exposing (heading)
-import Navbar
-import Page as Page exposing (Page(..))
+import Layout
+import Navbar exposing (ActivePage(..))
 import Page.Comic as Comic
 import Page.Counter as Counter
-import Route exposing (Route(..), fromUrl)
-import Ui exposing (lightBlue)
+import Page.Player as Player
+import Route exposing (fromUrl)
 import Url exposing (Url)
-import User exposing (update, view)
+import User exposing (update)
 
 
 
--- UI-komponentit kirjastosta
--- Layout gridillä ja flexboxilla
 -- TODO
 -- 1. Käyttäjän pitää ensin syöttää nimimerkki
 -- 2. Generoidaan käyttäjälle ID (myöhemmin backendissä)
@@ -44,20 +20,8 @@ import User exposing (update, view)
 -- 4. Ala hahmottelemaan pelilautaa ja laivoja
 
 
-type alias Player =
-    { name : String
-    , id : String
-    }
-
-
-type User
-    = Anonymous
-    | Known Player
-
-
 type alias Model =
     { key : Nav.Key
-    , user : User
     , page : Page
     , counter : Counter.Model
     }
@@ -66,12 +30,17 @@ type alias Model =
 init : Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ key =
     ( { key = key
-      , user = Anonymous -- TODO -- from flags
-      , page = Page.CounterPage -- TODO -- From url
+      , page = PlayerPage Player.init -- TODO -- From url
       , counter = Counter.init
       }
     , Cmd.none
     )
+
+
+type Page
+    = CounterPage
+    | PlayerPage Player.Model
+    | ComicPage Comic.Model
 
 
 type Msg
@@ -79,8 +48,25 @@ type Msg
     | LinkClicked Browser.UrlRequest
     | UrlChanged Url
     | CounterMsg Counter.Msg
-    | UserMsg User.Msg
+    | PlayerMsg Player.Msg
     | ComicMsg Comic.Msg
+
+
+toActivePage : Page -> Navbar.ActivePage
+toActivePage page =
+    case page of
+        CounterPage ->
+            Counter
+
+        PlayerPage _ ->
+            Player
+
+        ComicPage _ ->
+            Comic
+
+
+
+---- UPDATE ----
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -94,29 +80,37 @@ update msg model =
 
         ( CounterMsg counterMsg, CounterPage ) ->
             Counter.update counterMsg model.counter
-                |> stepCounter model
+                |> updateCounter model
 
-        ( UserMsg _, PlayerPage ) ->
-            ( model, Cmd.none )
+        ( PlayerMsg playerMsg, PlayerPage playerModel ) ->
+            Player.update playerMsg playerModel
+                |> updatePlayer model
 
         ( ComicMsg comicMsg, ComicPage comicModel ) ->
             Comic.update comicMsg comicModel
-                |> stepComic model
+                |> updateComic model
 
         ( _, _ ) ->
             ( model, Cmd.none )
 
 
-stepCounter : Model -> ( Counter.Model, Cmd Counter.Msg ) -> ( Model, Cmd Msg )
-stepCounter model ( counterModel, counterCmd ) =
-    ( { model | page = Page.CounterPage, counter = counterModel }
+updateCounter : Model -> ( Counter.Model, Cmd Counter.Msg ) -> ( Model, Cmd Msg )
+updateCounter model ( counterModel, counterCmd ) =
+    ( { model | page = CounterPage, counter = counterModel }
     , Cmd.map CounterMsg counterCmd
     )
 
 
-stepComic : Model -> ( Comic.Model, Cmd Comic.Msg ) -> ( Model, Cmd Msg )
-stepComic model ( comicModel, comicCmd ) =
-    ( { model | page = Page.ComicPage comicModel }
+updatePlayer : Model -> Player.Model -> ( Model, Cmd Msg )
+updatePlayer model playerModel =
+    ( { model | page = PlayerPage playerModel }
+    , Cmd.none
+    )
+
+
+updateComic : Model -> ( Comic.Model, Cmd Comic.Msg ) -> ( Model, Cmd Msg )
+updateComic model ( comicModel, comicCmd ) =
+    ( { model | page = ComicPage comicModel }
     , Cmd.map ComicMsg comicCmd
     )
 
@@ -124,10 +118,10 @@ stepComic model ( comicModel, comicCmd ) =
 linkClicked : Model -> Browser.UrlRequest -> ( Model, Cmd msg )
 linkClicked model urlRequest =
     case urlRequest of
+        -- TODO -- Check that user has given their information
         Browser.Internal url ->
             ( model, Nav.pushUrl model.key (Url.toString url) )
 
-        -- TODO -- Check that user has given their information
         Browser.External extUrl ->
             ( model, Nav.load extUrl )
 
@@ -136,60 +130,44 @@ urlChanged : Model -> Url -> ( Model, Cmd Msg )
 urlChanged model url =
     case fromUrl url of
         Just Route.Counter ->
-            ( { model | page = Page.CounterPage }, Cmd.none )
+            ( { model | page = CounterPage }, Cmd.none )
 
         Just Route.Player ->
-            ( { model | page = Page.PlayerPage }, Cmd.none )
+            ( { model | page = PlayerPage Player.init }, Cmd.none )
 
         Just Route.Comic ->
-            stepComic model Comic.init
+            updateComic model Comic.init
 
         Nothing ->
             ( Debug.log ("Route for url '" ++ Url.toString url ++ "' not found") model, Cmd.none )
 
 
-viewHeader : Element msg
-viewHeader =
-    el [ width fill ] <|
-        column [ width fill, Background.color lightBlue, spacing 20, padding 20 ]
-            [ logo 200
-            , el [ centerX, Font.size 30, heading 1, bold ] (Element.text "Your Elm App is working!")
-            ]
 
-
-logo : Int -> Element msg
-logo size =
-    image [ centerX, height (shrink |> minimum size) ] { src = "/logo.svg", description = "Elm logo" }
-
-
-viewContent : Element Msg -> Element Msg
-viewContent =
-    -- el [ centerX, centerY ]
-    el []
+---- VIEW ----
 
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "This is a title"
-    , body =
-        [ layout [] <|
-            column [ height fill, width fill, spacing 10 ]
-                [ viewHeader
-                , Navbar.view model.page
-                , el [ width fill, height fill ] <|
-                    case model.page of
-                        Page.CounterPage ->
-                            Counter.view CounterMsg model.counter
+    let
+        navBar =
+            toActivePage model.page |> Navbar.view
 
-                        Page.PlayerPage ->
-                            none
+        toPage =
+            Layout.view navBar
+    in
+    case model.page of
+        CounterPage ->
+            toPage CounterMsg (Counter.view model.counter)
 
-                        Page.ComicPage comicModel ->
-                            Comic.view comicModel
-                                |> Element.map ComicMsg
-                ]
-        ]
-    }
+        PlayerPage playerModel ->
+            toPage PlayerMsg (Player.view playerModel)
+
+        ComicPage comicModel ->
+            toPage ComicMsg (Comic.view comicModel)
+
+
+
+---- MAIN ----
 
 
 main : Program () Model Msg
